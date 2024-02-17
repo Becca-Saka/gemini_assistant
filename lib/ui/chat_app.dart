@@ -5,8 +5,8 @@ import 'package:gemini_assistant/services/text_to_speech_service.dart';
 import 'package:gemini_assistant/shared/app_colors.dart';
 
 import 'widget/circular_button.dart';
-import 'widget/expanding_circle.dart';
 import 'widget/gradient_text.dart';
+import 'widget/push_to_talk.dart';
 import 'widget/wave_animation.dart';
 
 class ChatApp extends StatefulWidget {
@@ -20,7 +20,7 @@ class _ChatAppState extends State<ChatApp> {
   final TextToSpeechService _textToSpeechService = TextToSpeechService();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   final GerminiServices _germiniServices = GerminiServices();
-  bool get _loading => _germiniServices.loading.value;
+  bool get _loading => _germiniServices.loading;
   TtsState ttsState = TtsState.stopped;
   String spokenText = '';
   @override
@@ -29,6 +29,8 @@ class _ChatAppState extends State<ChatApp> {
     _initGemini();
     _initSpeechServices();
   }
+
+  void _initGemini() => _germiniServices.init();
 
   void _initSpeechServices() async {
     await _speechToTextService.initSpeech();
@@ -48,9 +50,12 @@ class _ChatAppState extends State<ChatApp> {
   void _startListening() async {
     await _textToSpeechService.stop();
     await _speechToTextService.startListening(
-      onSpeech: (lastWords) {
+      onSpeech: (lastWords, isFinal) {
         spokenText = lastWords;
         setState(() {});
+        if (isFinal) {
+          _sendMessage(lastWords);
+        }
       },
     );
   }
@@ -60,26 +65,41 @@ class _ChatAppState extends State<ChatApp> {
       onSpeechStopped: (lastWords) {
         spokenText = lastWords;
         setState(() {});
-        if (lastWords.isNotEmpty) {
-          _sendMessage(lastWords);
-        }
+
+        _sendMessage(lastWords);
       },
     );
   }
 
-  void _initGemini() => _germiniServices.init();
+  void _stopSession() {
+    if (!_speechToTextService.isNotListening) {
+      _speechToTextService.cancel();
+    } else if (ttsState == TtsState.playing) {
+      _textToSpeechService.stop();
+    }
+
+    setState(() {});
+  }
 
   Future<void> _sendMessage(String message) async {
-    _germiniServices.sendMessage(
-      message,
-      onSuccess: (text) {
-        _textToSpeechService.speak(text);
-        setState(() {});
-      },
-      onError: (error) {
-        _showError(error);
-      },
-    );
+    bool canSendMessage = message.isNotEmpty &&
+        _speechToTextService.isNotListening &&
+        ttsState == TtsState.stopped &&
+        !_loading;
+    if (canSendMessage) {
+      debugPrint("Sending message: $message");
+      await _germiniServices.sendMessage(
+        message,
+        onSuccess: (text) {
+          _textToSpeechService.speak(text);
+          setState(() {});
+        },
+        onError: (error) {
+          setState(() {});
+          _showError(error);
+        },
+      );
+    }
   }
 
   void _showError(String message) {
@@ -102,16 +122,6 @@ class _ChatAppState extends State<ChatApp> {
         );
       },
     );
-  }
-
-  void _stopSession() {
-    if (!_speechToTextService.isNotListening) {
-      _speechToTextService.cancel();
-    } else if (ttsState == TtsState.playing) {
-      _textToSpeechService.stop();
-    }
-
-    setState(() {});
   }
 
   @override
@@ -161,53 +171,14 @@ class _ChatAppState extends State<ChatApp> {
                                           ),
                                         ),
                                       const SizedBox(height: 50),
-                                      Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          if (!_speechToTextService
-                                              .isNotListening)
-                                            ExpandingCircle(
-                                              color: AppColors.secondaryColor,
-                                              colors: [
-                                                Colors.white,
-                                                AppColors.secondaryColor
-                                                    .withOpacity(0.2),
-                                                AppColors.tertiaryColor
-                                                    .withOpacity(0.5),
-                                              ],
-                                              size: 250,
-                                            ),
-                                          CircularButton(
-                                            size: 150,
-                                            backgroundColor:
-                                                AppColors.secondaryColor,
-                                            onPressed:
-                                                // If not yet listening for speech start, otherwise stop
-                                                _speechToTextService
-                                                        .isNotListening
-                                                    ? _startListening
-                                                    : _stopListening,
-                                            child: AnimatedSwitcher(
-                                              duration: const Duration(
-                                                  milliseconds: 300),
-                                              child: _loading
-                                                  ? const Padding(
-                                                      padding:
-                                                          EdgeInsets.all(16.0),
-                                                      child:
-                                                          CircularProgressIndicator(),
-                                                    )
-                                                  : Icon(
-                                                      _speechToTextService
-                                                              .isNotListening
-                                                          ? Icons.mic_off
-                                                          : Icons.mic,
-                                                      size: 50,
-                                                      color: Colors.white,
-                                                    ),
-                                            ),
-                                          ),
-                                        ],
+                                      PushToTalk(
+                                        loading: _loading,
+                                        isNotListening:
+                                            _speechToTextService.isNotListening,
+                                        onPressed:
+                                            _speechToTextService.isNotListening
+                                                ? _startListening
+                                                : _stopListening,
                                       ),
                                     ],
                                   ),

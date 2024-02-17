@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class SpeechToTextService {
@@ -9,48 +10,40 @@ class SpeechToTextService {
   String _lastWords = '';
   bool get isNotListening => _speechToText.isNotListening;
 
-  /// This has to happen only once per app
   Future<void> initSpeech() async =>
-      speechEnabled = await _speechToText.initialize(
-        debugLogging: true,
-      );
+      speechEnabled = await _speechToText.initialize(debugLogging: true);
 
-  /// Each time to start a speech recognition session
+  /// Starts a speech recognition session
   Future<void> startListening({
-    required Function(String) onSpeech,
+    required Function(String, bool) onSpeech,
   }) async {
     await _speechToText.stop();
-
-    await _speechToText.listen(
+    _lastWords = '';
+    final response = await _speechToText.listen(
+      localeId: 'en-NG',
+      pauseFor: const Duration(seconds: 2),
       listenOptions: SpeechListenOptions(
-        listenMode: ListenMode.search,
+        autoPunctuation: true,
       ),
       onResult: (result) {
-        log('result: ${result.recognizedWords}');
+        debugPrint('result: ${result.recognizedWords}');
 
         _lastWords = result.recognizedWords;
 
-        onSpeech(_lastWords);
+        onSpeech(_lastWords, result.finalResult);
       },
-      localeId: 'en-NG',
     );
-    onSpeech(_lastWords);
+    log('response: $response');
+    onSpeech(_lastWords, false);
   }
 
-  /// Manually stop the active speech recognition session
-  /// Note that there are also timeouts that each platform enforces
-  /// and the SpeechToText plugin supports setting timeouts on the
-  /// listen method.
+  /// Stops the active speech recognition session
   Future<void> stopListening(
       {required Function(String) onSpeechStopped}) async {
     await _speechToText.stop();
 
     onSpeechStopped(_lastWords);
-    _lastWords = '';
   }
 
-  Future<void> cancel() async {
-    await _speechToText.stop();
-    _lastWords = '';
-  }
+  Future<void> cancel() async => await _speechToText.cancel();
 }

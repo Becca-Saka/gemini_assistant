@@ -4,12 +4,10 @@ import 'package:flutter/material.dart';
 
 class ExpandingCircle extends StatefulWidget {
   final double size;
-  final Color color;
   final List<Color> colors;
   const ExpandingCircle({
     super.key,
     required this.size,
-    required this.color,
     required this.colors,
   });
 
@@ -95,7 +93,7 @@ class _ExpandingCircleState extends State<ExpandingCircle>
             width: widget.size,
             height: widget.size,
             decoration: BoxDecoration(
-                color: widget.color,
+                // color: widget.color,
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: widget.colors,

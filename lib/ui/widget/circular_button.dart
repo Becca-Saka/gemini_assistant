@@ -15,18 +15,14 @@ class CircularButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      // height: size,
-      // width: size,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-            backgroundColor: backgroundColor,
-            shape: const CircleBorder(),
-            padding: EdgeInsets.zero,
-            fixedSize: size == null ? null : Size(size!, size!)),
-        onPressed: onPressed,
-        child: child,
-      ),
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+          fixedSize: size == null ? null : Size(size!, size!)),
+      onPressed: onPressed,
+      child: child,
     );
   }
 }
