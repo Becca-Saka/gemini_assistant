@@ -4,8 +4,9 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 class GerminiServices {
   late GenerativeModel model;
   late ChatSession chat;
+  // final String prompt = "";
   final String prompt =
-      "Your task is to provide a detailed answer to the user's question. If you can't answer the question, just say 'I don't know'. The user's question is: ";
+      "You are my personal assistant. Give the answer you find the questions below. However, if the question is beyond your capabilities, tell me 'I don't have an answer' or something more creative. \n\n  ";
   // final String prompt =
   //     "Assume the role of a helpful AI assistant: I'm seeking your assistance with these inquiries. Respond as if you were a voice-activated device, providing clear and concise answers. If and only if a question is beyond your capabilities, acknowledge it politely.";
   // final String prompt =

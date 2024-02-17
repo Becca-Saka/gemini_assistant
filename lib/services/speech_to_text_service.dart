@@ -4,14 +4,16 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 class SpeechToTextService {
   final SpeechToText _speechToText = SpeechToText();
-  bool _speechEnabled = false;
+  bool speechEnabled = false;
 
   String _lastWords = '';
   bool get isNotListening => _speechToText.isNotListening;
 
   /// This has to happen only once per app
   Future<void> initSpeech() async =>
-      _speechEnabled = await _speechToText.initialize();
+      speechEnabled = await _speechToText.initialize(
+        debugLogging: true,
+      );
 
   /// Each time to start a speech recognition session
   Future<void> startListening({
@@ -20,6 +22,9 @@ class SpeechToTextService {
     await _speechToText.stop();
 
     await _speechToText.listen(
+      listenOptions: SpeechListenOptions(
+        listenMode: ListenMode.search,
+      ),
       onResult: (result) {
         log('result: ${result.recognizedWords}');
 
@@ -41,6 +46,11 @@ class SpeechToTextService {
     await _speechToText.stop();
 
     onSpeechStopped(_lastWords);
+    _lastWords = '';
+  }
+
+  Future<void> cancel() async {
+    await _speechToText.stop();
     _lastWords = '';
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 enum TtsState { playing, stopped, paused, continued, error }
@@ -11,25 +10,25 @@ class TextToSpeechService {
   }) async {
     await stop();
     final voices = await flutterTts.getVoices as List<dynamic>;
-    final femaleVoices = voices.where((voice) => voice['gender'] == 'female');
-    debugPrint('voices ${femaleVoices.map((e) => e.toString()).join('\n')}');
-    final defaultVoice =
-        femaleVoices.firstWhere((voice) => voice['name'] == 'Martha');
-    if (defaultVoice != null) {
-      await flutterTts.setVoice(Map<String, String>.from(defaultVoice));
+    final defaultVoice = voices.where((voice) => voice['name'] == 'Martha');
+    // final defaultVoice =
+    //     femaleVoices.firstWhere((voice) => voice['name'] == 'Martha');
+    if (defaultVoice.isNotEmpty) {
+      await flutterTts.setVoice(Map<String, String>.from(defaultVoice.first));
     }
     await flutterTts.setSharedInstance(true);
     await flutterTts.setLanguage('en-NG');
     await flutterTts.setIosAudioCategory(
       IosTextToSpeechAudioCategory.playback,
       [
+        IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
         IosTextToSpeechAudioCategoryOptions.allowBluetooth,
         IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
         IosTextToSpeechAudioCategoryOptions.mixWithOthers,
-        IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
       ],
       IosTextToSpeechAudioMode.voicePrompt,
     );
+
     await flutterTts.awaitSpeakCompletion(true);
     await flutterTts.setVolume(1.0);
     await flutterTts.setPitch(1.0);

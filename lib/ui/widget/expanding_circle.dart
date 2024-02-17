@@ -5,17 +5,20 @@ import 'package:flutter/material.dart';
 class ExpandingCircle extends StatefulWidget {
   final double size;
   final Color color;
+  final List<Color> colors;
   const ExpandingCircle({
-    Key? key,
+    super.key,
     required this.size,
     required this.color,
-  }) : super(key: key);
+    required this.colors,
+  });
 
   @override
   State<ExpandingCircle> createState() => _ExpandingCircleState();
 }
 
-class _ExpandingCircleState extends State<ExpandingCircle> with SingleTickerProviderStateMixin {
+class _ExpandingCircleState extends State<ExpandingCircle>
+    with SingleTickerProviderStateMixin {
   late AnimationController controller;
   late Animation<double> scaleTween;
   late Animation<double> opacityTween;
@@ -92,9 +95,11 @@ class _ExpandingCircleState extends State<ExpandingCircle> with SingleTickerProv
             width: widget.size,
             height: widget.size,
             decoration: BoxDecoration(
-              color: widget.color,
-              shape: BoxShape.circle,
-            ),
+                color: widget.color,
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: widget.colors,
+                )),
           ),
         ),
       ),
