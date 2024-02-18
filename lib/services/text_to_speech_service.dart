@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 enum TtsState { playing, stopped, paused, continued, error }
@@ -9,15 +12,9 @@ class TextToSpeechService {
     required Function(TtsState ttsState) onListener,
   }) async {
     await stop();
-    final voices = await flutterTts.getVoices as List<dynamic>;
-    final defaultVoice = voices.where((voice) => voice['name'] == 'Martha');
-    // final defaultVoice =
-    //     femaleVoices.firstWhere((voice) => voice['name'] == 'Martha');
-    if (defaultVoice.isNotEmpty) {
-      await flutterTts.setVoice(Map<String, String>.from(defaultVoice.first));
-    }
-    await flutterTts.setSharedInstance(true);
     await flutterTts.setLanguage('en-NG');
+    await _setDefaultVoice();
+    await flutterTts.setSharedInstance(true);
     await flutterTts.setIosAudioCategory(
       IosTextToSpeechAudioCategory.playback,
       [
@@ -42,10 +39,31 @@ class TextToSpeechService {
     flutterTts.setContinueHandler(() => onListener(TtsState.continued));
 
     flutterTts.setErrorHandler((msg) => onListener(TtsState.error));
+    flutterTts.setProgressHandler((text, start, end, word) {
+      // debugPrint('text: $text');
+      // debugPrint('start: $start');
+      // debugPrint('end: $end');
+      debugPrint('word: $word');
+    });
+  }
+
+  Future<void> _setDefaultVoice() async {
+    final voices = await flutterTts.getVoices as List<dynamic>;
+    Iterable defaultVoice;
+    if (Platform.isIOS) {
+      defaultVoice = voices.where((voice) => voice['name'] == 'Martha');
+    } else {
+      defaultVoice = voices.where((voice) => voice['locale'] == 'en-GB');
+    }
+
+    if (defaultVoice.isNotEmpty) {
+      await flutterTts.setVoice(Map<String, String>.from(defaultVoice.first));
+    }
   }
 
   Future<TtsState> speak(String text) async {
     var result = await flutterTts.speak(text);
+
     if (result == 1) ttsState = TtsState.playing;
     return ttsState;
   }

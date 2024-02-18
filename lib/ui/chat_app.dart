@@ -1,4 +1,6 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gemini_assistant/services/file_picker_service.dart';
 import 'package:gemini_assistant/services/gemini_services.dart';
 import 'package:gemini_assistant/services/speech_to_text_service.dart';
 import 'package:gemini_assistant/services/text_to_speech_service.dart';
@@ -19,10 +21,14 @@ class ChatApp extends StatefulWidget {
 class _ChatAppState extends State<ChatApp> {
   final TextToSpeechService _textToSpeechService = TextToSpeechService();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
-  final GerminiServices _germiniServices = GerminiServices();
-  bool get _loading => _germiniServices.loading;
+  final GerminiService _germiniServices = GerminiService();
+  final FilePickerService _filePickerService = FilePickerService();
+  bool get _loading => _germiniServices.loading.value;
+  bool imageLoading = false;
   TtsState ttsState = TtsState.stopped;
   String spokenText = '';
+  List<FileData>? filesInProcess;
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +39,13 @@ class _ChatAppState extends State<ChatApp> {
   void _initGemini() => _germiniServices.init();
 
   void _initSpeechServices() async {
-    await _speechToTextService.initSpeech();
+    await _speechToTextService.initSpeech(
+      onError: (e) {
+        spokenText = '';
+        setState(() {});
+        debugPrint('error: $e');
+      },
+    );
 
     setState(() {});
     _textToSpeechService.initTTS(onListener: (ttsState) {
@@ -42,6 +54,7 @@ class _ChatAppState extends State<ChatApp> {
       debugPrint("ttsState: ${ttsState.name}");
       if (ttsState == TtsState.stopped) {
         spokenText = '';
+        filesInProcess = null;
       }
       setState(() {});
     });
@@ -54,7 +67,7 @@ class _ChatAppState extends State<ChatApp> {
         spokenText = lastWords;
         setState(() {});
         if (isFinal) {
-          _sendMessage(lastWords);
+          _sendMessage(message: lastWords);
         }
       },
     );
@@ -66,7 +79,7 @@ class _ChatAppState extends State<ChatApp> {
         spokenText = lastWords;
         setState(() {});
 
-        _sendMessage(lastWords);
+        _sendMessage(message: lastWords);
       },
     );
   }
@@ -78,18 +91,50 @@ class _ChatAppState extends State<ChatApp> {
       _textToSpeechService.stop();
     }
 
+    spokenText = '';
+    filesInProcess = null;
+
     setState(() {});
   }
 
-  Future<void> _sendMessage(String message) async {
-    bool canSendMessage = message.isNotEmpty &&
+  Future<void> _pickImage() async {
+    final files = await _filePickerService.pickFile(
+        allowMultiple: true,
+        type: FileType.image,
+        onFileLoading: (status) {
+          if (status == FilePickerStatus.picking) {
+            imageLoading = true;
+          } else if (status == FilePickerStatus.done) {
+            imageLoading = false;
+          }
+
+          debugPrint('loading: ${status.name}');
+          setState(() {});
+        });
+
+    if (files != null && files.isNotEmpty) {
+      filesInProcess = files;
+      debugPrint('returning: ${files.length} files');
+      setState(() {});
+      _sendMessage(imageBytes: files);
+    }
+  }
+
+  Future<void> _sendMessage({
+    String? message,
+    List<FileData>? imageBytes,
+  }) async {
+    bool hasValidMessage = message != null && message.isNotEmpty ||
+        imageBytes != null && imageBytes.isNotEmpty;
+    bool canSendMessage = hasValidMessage &&
         _speechToTextService.isNotListening &&
         ttsState == TtsState.stopped &&
         !_loading;
     if (canSendMessage) {
-      debugPrint("Sending message: $message");
+      debugPrint("Sending message: $message ${imageBytes?.length}");
       await _germiniServices.sendMessage(
-        message,
+        message: message,
+        imageBytes: imageBytes,
         onSuccess: (text) {
           _textToSpeechService.speak(text);
           setState(() {});
@@ -156,6 +201,20 @@ class _ChatAppState extends State<ChatApp> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Spacer(),
+                          if (filesInProcess != null &&
+                                  filesInProcess!.isNotEmpty ||
+                              imageLoading) ...[
+                            if (imageLoading)
+                              const Text(
+                                'Loading images...',
+                                style: TextStyle(fontSize: 20),
+                              )
+                            else
+                              ImageInProcessWidget(
+                                filesInProcess: filesInProcess,
+                              ),
+                            const SizedBox(height: 50)
+                          ],
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 300),
                             child: ttsState == TtsState.playing
@@ -171,15 +230,21 @@ class _ChatAppState extends State<ChatApp> {
                                           ),
                                         ),
                                       const SizedBox(height: 50),
-                                      PushToTalk(
-                                        loading: _loading,
-                                        isNotListening:
-                                            _speechToTextService.isNotListening,
-                                        onPressed:
-                                            _speechToTextService.isNotListening
-                                                ? _startListening
-                                                : _stopListening,
-                                      ),
+                                      ValueListenableBuilder(
+                                          valueListenable:
+                                              _germiniServices.loading,
+                                          builder: (context, value, child) {
+                                            return PushToTalk(
+                                              loading: value,
+                                              isNotListening:
+                                                  _speechToTextService
+                                                      .isNotListening,
+                                              onPressed: _speechToTextService
+                                                      .isNotListening
+                                                  ? _startListening
+                                                  : _stopListening,
+                                            );
+                                          }),
                                     ],
                                   ),
                           ),
@@ -195,6 +260,22 @@ class _ChatAppState extends State<ChatApp> {
                                 size: 36,
                                 color: Colors.white,
                               ),
+                            )
+                          else
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                CircularButton(
+                                  size: 50,
+                                  backgroundColor: Colors.red,
+                                  onPressed: _pickImage,
+                                  child: const Icon(
+                                    Icons.image,
+                                    size: 24,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                         ],
                       ),
@@ -204,5 +285,37 @@ class _ChatAppState extends State<ChatApp> {
         ),
       ),
     ));
+  }
+}
+
+class ImageInProcessWidget extends StatelessWidget {
+  const ImageInProcessWidget({
+    super.key,
+    required this.filesInProcess,
+  });
+
+  final List<FileData>? filesInProcess;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 300,
+      child: ListView.builder(
+        shrinkWrap: true,
+        scrollDirection: Axis.horizontal,
+        itemCount: filesInProcess!.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Image.memory(
+              filesInProcess![index].bytes,
+              fit: BoxFit.cover,
+              width: 200,
+              height: 300,
+            ),
+          );
+        },
+      ),
+    );
   }
 }

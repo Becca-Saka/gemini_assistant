@@ -39,7 +39,7 @@ class _SpeakingWaveBlockState extends State<SpeakingWaveBlock>
     super.initState();
     controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 800),
     );
     animation = CurvedAnimation(
       parent: controller,
@@ -107,7 +107,7 @@ class SpeakingWavePainter extends CustomPainter {
       ),
       paint,
     );
-    // Future.delayed(const Duration(milliseconds: 100));
+
     // }
   }
 
@@ -116,132 +116,3 @@ class SpeakingWavePainter extends CustomPainter {
     return true;
   }
 }
-// class SpeakingWave extends StatefulWidget {
-//   const SpeakingWave({super.key});
-
-//   @override
-//   State<SpeakingWave> createState() => _SpeakingWaveState();
-// }
-
-// class _SpeakingWaveState extends State<SpeakingWave>
-//     with SingleTickerProviderStateMixin {
-//   late AnimationController controller;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     controller = AnimationController(
-//       vsync: this,
-//       duration: const Duration(milliseconds: 1000),
-//     );
-
-//     controller.repeat(reverse: true);
-//   }
-
-//   @override
-//   void dispose() {
-//     super.dispose();
-//     controller.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return AnimatedBuilder(
-//       animation: controller,
-//       builder: (context, child) {
-//         return CustomPaint(
-//           painter: SpeakingWavePainter(controller.value),
-//           size: const Size(300, 100),
-//         );
-//       },
-//     );
-//   }
-// }
-
-// class SpeakingWavePainter extends CustomPainter {
-//   final double animationValue;
-//   const SpeakingWavePainter(this.animationValue) : super();
-
-//   @override
-//   Future<void> paint(Canvas canvas, Size size) async {
-//     final paint = Paint();
-//     paint.color = Colors.white;
-//     paint.style = PaintingStyle.fill;
-//     paint.strokeWidth = 5;
-//     final rectagleHeight = size.height;
-//     final rectagleWidth = size.width / 4;
-//     // final heightMagnifier = 30 * animationValue;
-
-//     for (int i = 0; i < 4; i++) {
-//       final double waveHeight =
-//           math.sin((animationValue * math.pi) - (i * 0.5)) * 0.5 + 0.5;
-//       final heightMagnifier =
-//           30 * waveHeight; // Adjust the magnifier for a better wave effect
-
-//       // final double waveHeight =
-//       //     math.sin((animationValue * math.pi) - (i * 0.5)) * 0.5 + 0.5;
-//       // const maxify = 25;
-//       // final maxify = math.Random().nextInt(25);
-//       // final heightMagnifier = 5 + maxify * waveHeight;
-//       canvas.drawRRect(
-//         RRect.fromLTRBR(
-//           i * (rectagleWidth + 5),
-//           -heightMagnifier,
-//           (i + 1) * rectagleWidth + i * 5,
-//           rectagleHeight + heightMagnifier,
-//           const Radius.circular(30),
-//         ),
-//         paint,
-//       );
-//       // Future.delayed(const Duration(milliseconds: 100));
-//     }
-//     // print(heightMagnifier);
-//     // canvas.drawRRect(
-//     //   RRect.fromLTRBR(
-//     //     0,
-//     //     -heightMagnifier,
-//     //     rectagleWidth,
-//     //     rectagleHeight + heightMagnifier,
-//     //     const Radius.circular(30),
-//     //   ),
-//     //   paint,
-//     // );
-//     // // canvas.save();
-//     // // canvas.restore();
-//     // canvas.drawRRect(
-//     //   RRect.fromLTRBR(
-//     //     rectagleWidth + 5,
-//     //     -heightMagnifier,
-//     //     rectagleWidth * 2 + 5,
-//     //     rectagleHeight + heightMagnifier,
-//     //     const Radius.circular(30),
-//     //   ),
-//     //   paint,
-//     // );
-//     // canvas.drawRRect(
-//     //   RRect.fromLTRBR(
-//     //     rectagleWidth * 2 + 10,
-//     //     -heightMagnifier,
-//     //     rectagleWidth * 3 + 10,
-//     //     rectagleHeight + heightMagnifier,
-//     //     const Radius.circular(30),
-//     //   ),
-//     //   paint,
-//     // );
-//     // canvas.drawRRect(
-//     //   RRect.fromLTRBR(
-//     //     rectagleWidth * 3 + 15,
-//     //     -heightMagnifier,
-//     //     rectagleWidth * 4 + 15,
-//     //     rectagleHeight + heightMagnifier,
-//     //     const Radius.circular(30),
-//     //   ),
-//     //   paint,
-//     // );
-//   }
-
-//   @override
-//   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-//     return true;
-//   }
-// }
