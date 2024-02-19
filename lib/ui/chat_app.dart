@@ -1,32 +1,37 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gemini_assistant/services/file_picker_service.dart';
-import 'package:gemini_assistant/services/gemini_services.dart';
+import 'package:gemini_assistant/services/gemini_service.dart';
 import 'package:gemini_assistant/services/speech_to_text_service.dart';
 import 'package:gemini_assistant/services/text_to_speech_service.dart';
 import 'package:gemini_assistant/shared/app_colors.dart';
 
 import 'widget/circular_button.dart';
 import 'widget/gradient_text.dart';
+import 'widget/image_in_process.dart';
 import 'widget/push_to_talk.dart';
 import 'widget/wave_animation.dart';
 
-class ChatApp extends StatefulWidget {
-  const ChatApp({super.key});
+class ChatView extends StatefulWidget {
+  const ChatView({super.key});
 
   @override
-  State<ChatApp> createState() => _ChatAppState();
+  State<ChatView> createState() => _ChatViewState();
 }
 
-class _ChatAppState extends State<ChatApp> {
+class _ChatViewState extends State<ChatView> {
   final TextToSpeechService _textToSpeechService = TextToSpeechService();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   final GerminiService _germiniServices = GerminiService();
   final FilePickerService _filePickerService = FilePickerService();
+  ScrollController controller = ScrollController();
   bool get _loading => _germiniServices.loading.value;
   bool imageLoading = false;
   TtsState ttsState = TtsState.stopped;
   String spokenText = '';
+  String resultText = '';
+  int start = 0;
+  int end = 0;
   List<FileData>? filesInProcess;
 
   @override
@@ -48,16 +53,35 @@ class _ChatAppState extends State<ChatApp> {
     );
 
     setState(() {});
-    _textToSpeechService.initTTS(onListener: (ttsState) {
-      this.ttsState = ttsState;
+    _textToSpeechService.initTTS(
+        onListener: (ttsState) {
+          this.ttsState = ttsState;
 
-      debugPrint("ttsState: ${ttsState.name}");
-      if (ttsState == TtsState.stopped) {
-        spokenText = '';
-        filesInProcess = null;
-      }
-      setState(() {});
-    });
+          debugPrint("ttsState: ${ttsState.name}");
+          if (ttsState == TtsState.stopped) {
+            spokenText = '';
+            resultText = '';
+            start = 0;
+            end = 0;
+            filesInProcess = null;
+          }
+          setState(() {});
+        },
+        onProgress: _onTextSpeechProgress);
+  }
+
+  void _onTextSpeechProgress(
+    String text,
+    int start,
+    int end,
+    String word,
+  ) {
+    resultText = word;
+    // resultText = text;
+    this.start = start;
+    this.end = end;
+
+    setState(() {});
   }
 
   void _startListening() async {
@@ -148,6 +172,9 @@ class _ChatAppState extends State<ChatApp> {
   }
 
   void _showError(String message) {
+    filesInProcess = null;
+    imageLoading = false;
+    spokenText = '';
     showDialog(
       context: context,
       builder: (context) {
@@ -200,21 +227,29 @@ class _ChatAppState extends State<ChatApp> {
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          const SizedBox(height: 30),
+                          ImageInProcessWidget(
+                            filesInProcess: filesInProcess,
+                            imageLoading: imageLoading,
+                          ),
+
+                          // HighlightedText(
+                          //   text: resultText,
+                          //   start: start,
+                          //   end: end,
+                          // ),
                           const Spacer(),
-                          if (filesInProcess != null &&
-                                  filesInProcess!.isNotEmpty ||
-                              imageLoading) ...[
-                            if (imageLoading)
-                              const Text(
-                                'Loading images...',
-                                style: TextStyle(fontSize: 20),
-                              )
-                            else
-                              ImageInProcessWidget(
-                                filesInProcess: filesInProcess,
+                          if (resultText.isNotEmpty)
+                            Text(
+                              resultText,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
                               ),
-                            const SizedBox(height: 50)
-                          ],
+                            ),
+                          const SizedBox(
+                            height: 80,
+                          ),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 300),
                             child: ttsState == TtsState.playing
@@ -285,37 +320,5 @@ class _ChatAppState extends State<ChatApp> {
         ),
       ),
     ));
-  }
-}
-
-class ImageInProcessWidget extends StatelessWidget {
-  const ImageInProcessWidget({
-    super.key,
-    required this.filesInProcess,
-  });
-
-  final List<FileData>? filesInProcess;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 300,
-      child: ListView.builder(
-        shrinkWrap: true,
-        scrollDirection: Axis.horizontal,
-        itemCount: filesInProcess!.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Image.memory(
-              filesInProcess![index].bytes,
-              fit: BoxFit.cover,
-              width: 200,
-              height: 300,
-            ),
-          );
-        },
-      ),
-    );
   }
 }

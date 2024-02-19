@@ -11,7 +11,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: const ChatApp(),
+      home: const ChatView(),
       themeMode: ThemeMode.dark,
       darkTheme: ThemeData.dark(),
     );

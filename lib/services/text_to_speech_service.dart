@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 enum TtsState { playing, stopped, paused, continued, error }
@@ -10,6 +9,7 @@ class TextToSpeechService {
   TtsState ttsState = TtsState.stopped;
   void initTTS({
     required Function(TtsState ttsState) onListener,
+    required Function(String, int, int, String) onProgress,
   }) async {
     await stop();
     await flutterTts.setLanguage('en-NG');
@@ -40,10 +40,7 @@ class TextToSpeechService {
 
     flutterTts.setErrorHandler((msg) => onListener(TtsState.error));
     flutterTts.setProgressHandler((text, start, end, word) {
-      // debugPrint('text: $text');
-      // debugPrint('start: $start');
-      // debugPrint('end: $end');
-      debugPrint('word: $word');
+      onProgress(text, start, end, word);
     });
   }
 
